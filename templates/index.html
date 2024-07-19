@@ -4,18 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iCare</title>
-    <link rel = "stylesheet" href = "../static/style.css">
+    <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
     <div class="container">
+        <div class="button-group">
+            <button onclick="sendUserRole('照護員')">照護員</button>
+            <button onclick="sendUserRole('平輩')">平輩</button>
+            <button onclick="sendUserRole('晚輩')">晚輩</button>
+        </div>
+        <input type="file" id="imageInput" accept="image/*">
+        <button onclick="uploadImage()">上傳圖片</button>
         <div class="result">
-            <div class="loader"></div>
+            <p id="selected-role" style="display: none;">您選擇的角色是: <span id="role-name">點選完畢後，請勿重複點選</span></p>
+            <!--<img src="../test.png" class="image" style="display: block;">-->
         </div>
         <button onclick="startRecording()" class="start">開始識別</button>
     </div>
-    
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="../static/index.js"></script>
+    
 </body>
 </html>
