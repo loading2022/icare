@@ -3,41 +3,98 @@ import time
 import threading
 import queue
 import azure.cognitiveservices.speech as speechsdk
-from flask import Flask, render_template, request, jsonify, url_for, send_from_directory
 import openai
-import uuid
 import requests
 import json
 import cv2
-import numpy as np
+from flask import Flask, render_template, request, jsonify
 from deepface import DeepFace
-from PIL import ImageFont, ImageDraw, Image
+from dotenv import load_dotenv
+load_dotenv()
 
 # 變數定義
-region = 'eastus2'
-img_url = "https://pmumedicaldevice.com/cdn/shop/files/lifestyle-beauty-fashion-people-emotions-concept-goodlooking-young-female-striped-shirt-point.jpg?v=1712305433&width=750"
+subscription_key = os.getenv("AZURE_KEY")
+region = os.getenv("AZURE_REGION")
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
+app.secret_key = os.getenv("APP_SECRET_KEY") 
 
+global img_url 
 # 線程安全的佇列用來存儲結果 URL
 result_queue = queue.Queue()
-#result_queue.put("https://studio.d-id.com/share?id=401404189a5049f2d9546e8a48e32fa1&utm_source=copy")
-# 設定 GPT API
-def call_gpt(text, emotion):
+
+def call_gpt(text, role, emotion):
     openai.api_key = openai_api_key
     print(emotion)
+    if role == '照護員':
+        prompt = f"你的名字是小妤，使用者為年長者，你須扮演一個陪伴年長者的角色,如果使用者有提及病痛相關的內容，請回應「好的，我會幫您向您的家人反應」，再依據 user 內容及{emotion}給予適當回應，請以較口語化的方式回應，並請勿反駁使用者所說的內容，結果請以繁體中文"
+    elif role == '平輩':
+        prompt = f"你的名字是小妤，使用者為年長者，你須扮演一個朋友或同齡人的角色，內容須表現出共感的感覺，依據 user 內容及{emotion}給予適當回應，請以較口語化的方式回應，並請勿反駁使用者所說的內容，結果請以繁體中文"
+    elif role == '晚輩':
+        prompt = f"你的名字是小妤，使用者為年長者，你須扮演一個晚輩或孫輩的角色，依據 user 內容及{emotion}給予適當回應，請以較口語化的方式回應，並請勿反駁使用者所說的內容，結果請以繁體中文"
+    
     response = openai.ChatCompletion.create(
-        model ="gpt-4o",
+        model="gpt-4o",
         messages=[
-            {"role": "system", "content": f"你的名字是小妤，使用者為年長者，你須扮演一個陪伴年長者的角色，依據 user 內容及{emotion}給予適當回應，請連貫之前所說的內容，請以較口語化的方式回應，請控制在30字以內作回答，並請勿反駁使用者所說的內容，結果請以繁體中文"},
+            {"role": "system", "content": prompt},
             {"role": "user", "content": text}
         ]
     )
     return response.choices[0].message.content
 
+# 建立 D-ID URL
+def create_did(text, img_url):
+    url = "https://api.d-id.com/talks"
+    print(f"D-ID: {img_url}")
+    payload = {
+    "script": {
+        "type": "text",
+        "subtitles": "false",
+        "provider": {
+            "type": "microsoft",
+            "voice_id": "zh-CN-XiaoxiaoNeural"
+        },
+        "ssml": "false",
+        "input": text
+    },
+    "config": {
+        "fluent": "false",
+        "pad_audio": "0.0"
+    },
+    "source_url": img_url
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "authorization": os.getenv("DID_KEY")
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    response_json = json.loads(response.text)
+    print(response_json)
+
+    talk_id = response_json['id']
+    url = "https://api.d-id.com/talks/"+talk_id
+    print(url)
+    headers = {
+        "accept": "application/json",
+        "authorization": os.getenv("DID_KEY")
+    }
+    while True:
+        response = requests.get(url, headers=headers)
+        response_json = json.loads(response.text)
+        status = response_json['status']
+        if status == 'done':
+            break
+    
+    result_url = response_json['result_url']
+    
+    print(result_url)
+    return result_url
 # 語音辨識類別
 class ContinuousRecognizer:
-    def __init__(self):
+    def __init__(self, role, imgurl):
         self.speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
         self.speech_config.speech_recognition_language="zh-TW"
         self.audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
@@ -46,16 +103,13 @@ class ContinuousRecognizer:
         self.timer = None
         self.audio_path = None
         self.current_emotion = "未知"
+        self.role = role
+        self.imgurl = imgurl
 
     def start(self):
         self.recognizer.recognized.connect(self.recognized)
         self.recognizer.start_continuous_recognition()
         threading.Thread(target=self.detect_emotion).start()
-
-    def stop(self):
-        self.recognizer.stop_continuous_recognition()
-        if self.timer:
-            self.timer.cancel()
 
     def recognized(self, args):
         if args.result.reason == speechsdk.ResultReason.RecognizedSpeech:
@@ -67,19 +121,17 @@ class ContinuousRecognizer:
             self.timer.start()
 
     def respond(self, text):
-        self.stop()  # 在回應之前關閉麥克風
         try:
             if text.strip():  # 確認文本不為空
                 print(f"Responding to text: {text}")  # 確認此函數被調用
-                response_text = call_gpt(text, self.current_emotion)
+                response_text = call_gpt(text, self.role, self.current_emotion)
                 print("GPT Response: {}".format(response_text))  # 檢查 GPT 回應
-                result_url = create_did(response_text)
+                result_url = create_did(response_text, self.imgurl)
+                print(self.imgurl)
                 print("Result URL: {}".format(result_url))  # 確認 URL
                 result_queue.put(result_url)  # 將 URL 放入佇列中
-                #self.start()  # 回應完成後重新開啟麥克風
         except Exception as e:
             print(f"Error in respond: {e}")  # 打印任何錯誤
-            #self.start()  # 錯誤發生後重新開啟麥克風
     
     def detect_emotion(self):
         text_obj = {
@@ -117,77 +169,37 @@ class ContinuousRecognizer:
         cap.release()
         cv2.destroyAllWindows()
 
-# 建立 D-ID URL
-def create_did(text):
-    result_url = "https://d-id-talks-prod.s3.us-west-2.amazonaws.com/google-oauth2%7C105929470202191278895/tlk_VoQbQ1XdAQJiLGXV141Ra/1716690275935.mp4?AWSAccessKeyId=AKIA5CUMPJBIK65W6FGA&Expires=1716776680&Signature=daH6U8sDUuYagKdRFd6CTDNu2Yg%3D"
-    url = "https://api.d-id.com/talks"
 
-    payload = {
-    "script": {
-        "type": "text",
-        "subtitles": "false",
-        "provider": {
-            "type": "microsoft",
-            "voice_id": "zh-CN-XiaoxiaoNeural"
-        },
-        "ssml": "false",
-        "input": text
-    },
-    "config": {
-        "fluent": "false",
-        "pad_audio": "0.0"
-    },
-    "source_url": img_url
-    }
-    headers = {
-        "accept": "application/json",
-        "content-type": "application/json"
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-    response_json = json.loads(response.text)
-    print(response_json)
-
-    talk_id = response_json['id']
-    url = "https://api.d-id.com/talks/"+talk_id
-
-    headers = {
-        "accept": "application/json",
-    }
-    while True:
-        response = requests.get(url, headers=headers)
-        response_json = json.loads(response.text)
-        status = response_json['status']
-        if status == 'done':
-            break
-    
-    result_url = response_json['result_url']
-    print(result_url)
-    return result_url
 
 # Flask 路由
 @app.route('/')
 def index():
     return render_template('index.html')
 
+def send_role():
+    data = request.json
+    role = data.get('role')
+    print(f"User role selected: {role}")
+    return jsonify({'status': 'success', 'role': role})
+
 @app.route("/start_recording", methods=["POST"])
 def recognize_from_microphone():
-    recognizer = ContinuousRecognizer()
+    data = request.json
+    role = data.get('role')
+    avater_img = request.get_json() 
+    image_url = avater_img['imageUrl'] 
+    print(f'image:{image_url}')
+    recognizer = ContinuousRecognizer(role, image_url)
     recognizer.start()
     return jsonify({"status": "recognition started"})
 
-@app.route("/restart_recognition", methods=["POST"])
-def restart_recognition():
-    recognizer = ContinuousRecognizer()
-    recognizer.start()  
-    return jsonify({"status": "recognition restarted"})
 
 @app.route('/get_result_url', methods=['GET'])
 def get_result_url():
     try:
         result_url = result_queue.get_nowait() 
     except queue.Empty:
-        return jsonify({"error": "小妤正在聽..."})
+        return jsonify({"error": "影片尚未準備好"})
     else:
         return jsonify({"result_url": result_url})
 
