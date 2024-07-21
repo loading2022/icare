@@ -7,21 +7,32 @@ import openai
 import requests
 import json
 import cv2
+import pyodbc
 from flask import Flask, render_template, request, jsonify
 from deepface import DeepFace
 from dotenv import load_dotenv
+from datetime import datetime
+
 load_dotenv()
 
-# 變數定義
 subscription_key = os.getenv("AZURE_KEY")
 region = os.getenv("AZURE_REGION")
 openai_api_key = os.getenv("OPENAI_API_KEY")
+server = os.getenv('SQL_SERVER')
+database = os.getenv('SQL_DATABASE_NAME')
+username = os.getenv('SQL_USERNAME')
+password = os.getenv('SQL_PWD')
+
+conn = pyodbc.connect(
+    f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+)
+
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY") 
 
 global img_url 
-# 線程安全的佇列用來存儲結果 URL
 result_queue = queue.Queue()
 
 def call_gpt(text, role, emotion):
@@ -43,7 +54,6 @@ def call_gpt(text, role, emotion):
     )
     return response.choices[0].message.content
 
-# 建立 D-ID URL
 def create_did(text, img_url):
     url = "https://api.d-id.com/talks"
     print(f"D-ID: {img_url}")
@@ -92,7 +102,7 @@ def create_did(text, img_url):
     
     print(result_url)
     return result_url
-# 語音辨識類別
+
 class ContinuousRecognizer:
     def __init__(self, role, imgurl):
         self.speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
@@ -126,6 +136,16 @@ class ContinuousRecognizer:
                 print(f"Responding to text: {text}")  # 確認此函數被調用
                 response_text = call_gpt(text, self.role, self.current_emotion)
                 print("GPT Response: {}".format(response_text))  # 檢查 GPT 回應
+                currentDateAndTime = datetime.now()
+                emotion = self.current_emotion
+                cursor = conn.cursor()
+                cursor.execute('''
+                INSERT INTO conversation_record (timestamp, user_id, message, respond, user_emotion) VALUES (?, ?, ?, ?, ?)
+                ''', (currentDateAndTime, 2, text, response_text, emotion)
+                )
+                conn.commit()
+                cursor.close()
+                conn.close()
                 result_url = create_did(response_text, self.imgurl)
                 print(self.imgurl)
                 print("Result URL: {}".format(result_url))  # 確認 URL
@@ -171,7 +191,6 @@ class ContinuousRecognizer:
 
 
 
-# Flask 路由
 @app.route('/')
 def index():
     return render_template('index.html')
