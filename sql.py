@@ -17,9 +17,6 @@ cursor.execute('''
 INSERT INTO icare_user (username, account, pwd) VALUES (?, ?, ?)
 ''', ('john_doe', 'john@example.com', '123'))
 
-cursor.execute('''
-INSERT INTO conversation_record (timestamp, message, respond, user_emotion) VALUES (?, ?, ?, ?)
-''', ('2023-07-22 12:34:56', 'Hello, how are you?', 'hi', '開心'))
 
 conn.commit()
 

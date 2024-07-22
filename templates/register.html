@@ -6,14 +6,29 @@
     <title>Register</title>
 </head>
 <body>
-    <div class="acc">
-        <label for="account">帳號:</label>
-        <input type="text" id="account">
-    </div>
-    <div class="pwd">
-        <label for="password">密碼:</label>
-        <input type="password" id="password">
-    </div>
-    <input type="submit" value="註冊">
+    
+    <form method="post" action="/register">
+        <div class="name">
+            <label for="username">暱稱:</label>
+            <input type="text" id="username" name="username">
+        </div>
+        <div class="acc">
+            <label for="account">帳號:</label>
+            <input type="text" id="account" name="account">
+        </div>
+        <div class="pwd">
+            <label for="password">密碼:</label>
+            <input type="password" id="password" name="password">
+        </div>
+        <input type="submit" value="註冊" id="register-button">
+    </form>
+    {% if message %}
+    <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        alert('{{ message }}');
+    });
+    </script>
+    {% endif %}
 </body>
+<script src="../static/index.js"></script>
 </html>

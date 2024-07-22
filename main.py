@@ -8,7 +8,7 @@ import requests
 import json
 import cv2
 import pyodbc
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from deepface import DeepFace
 from dotenv import load_dotenv
 from datetime import datetime
@@ -35,6 +35,49 @@ app.secret_key = os.getenv("APP_SECRET_KEY")
 global img_url 
 result_queue = queue.Queue()
 
+def create_account(name, account, pwd):
+    server = os.getenv('SQL_SERVER')
+    database = os.getenv('SQL_DATABASE_NAME')
+    username = os.getenv('SQL_USERNAME')
+    password = os.getenv('SQL_PWD')
+
+    conn = pyodbc.connect(
+        f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+    )
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM icare_user WHERE account = ?", (account,))
+    if cursor.fetchone():
+        return render_template('login.html', message="帳號已註冊")
+    else:
+        cursor.execute('''
+        INSERT INTO icare_user (username, account, pwd) VALUES (?, ?, ?)
+        ''', (name, account, pwd))
+        conn.commit()
+    cursor.close()
+    conn.close()
+
+def search_user(account, password):
+    server = os.getenv('SQL_SERVER')
+    database = os.getenv('SQL_DATABASE_NAME')
+    username = os.getenv('SQL_USERNAME')
+    password = os.getenv('SQL_PWD')
+
+    conn = pyodbc.connect(
+        f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+    )
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM icare_user WHERE account = ?", (account))
+    if cursor.fetchone()[0]>0:
+        cursor1 = conn.cursor()
+        cursor1.execute("SELECT COUNT(*) FROM icare_user WHERE account = ? AND pwd = ?", (account, password))
+        print(cursor1)
+        if cursor1.fetchone()[0]>0:
+            return True
+        else:
+            return jsonify({'Message':'密碼錯誤，請重新輸入'})
+    else:
+        return False
+    
 def call_gpt(text, role, emotion):
     openai.api_key = openai_api_key
     print(emotion)
@@ -132,10 +175,10 @@ class ContinuousRecognizer:
 
     def respond(self, text):
         try:
-            if text.strip():  # 確認文本不為空
-                print(f"Responding to text: {text}")  # 確認此函數被調用
+            if text.strip():
+                print(f"Responding to text: {text}") 
                 response_text = call_gpt(text, self.role, self.current_emotion)
-                print("GPT Response: {}".format(response_text))  # 檢查 GPT 回應
+                print("GPT Response: {}".format(response_text))  
                 currentDateAndTime = datetime.now()
                 emotion = self.current_emotion
                 cursor = conn.cursor()
@@ -148,10 +191,10 @@ class ContinuousRecognizer:
                 conn.close()
                 result_url = create_did(response_text, self.imgurl)
                 print(self.imgurl)
-                print("Result URL: {}".format(result_url))  # 確認 URL
+                print("Result URL: {}".format(result_url)) 
                 result_queue.put(result_url)  # 將 URL 放入佇列中
         except Exception as e:
-            print(f"Error in respond: {e}")  # 打印任何錯誤
+            print(f"Error in respond: {e}")  
     
     def detect_emotion(self):
         text_obj = {
@@ -177,9 +220,8 @@ class ContinuousRecognizer:
             try:
                 analyze = DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
                 if isinstance(analyze, list):
-                    analyze = analyze[0]  # 確保返回值為字典而不是列表
-                self.current_emotion = text_obj.get(analyze['dominant_emotion'], '未知')  # 取得情緒文字
-                #print(f"Detected Emotion: {self.current_emotion}")
+                    analyze = analyze[0]  
+                self.current_emotion = text_obj.get(analyze['dominant_emotion'], '未知')  
             except Exception as e:
                 print(f"Error: {e}")
                 pass
@@ -193,7 +235,7 @@ class ContinuousRecognizer:
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('register.html')
 
 def send_role():
     data = request.json
@@ -221,6 +263,36 @@ def get_result_url():
         return jsonify({"error": "影片尚未準備好"})
     else:
         return jsonify({"result_url": result_url})
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    try:
+        account = request.form.get("account")
+        password = request.form.get("password")
+        name = request.form.get("username")
+        if not account or not password or not username:
+            return render_template('register.html', message="帳號、名稱或密碼尚未填寫完成")
+        create_account(name, account, password)
+        return render_template('login.html')
+    except Exception as e:
+        return jsonify({"Error":f"錯誤:{str(e)}"})
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        account = request.form.get("account")
+        password = request.form.get("password")
+        if not account or not password:
+            return render_template('login.html', message='帳號或密碼尚未填寫完成')
+        user_exist = search_user(account, password)
+        if user_exist == True:
+            return render_template('index.html')
+        elif user_exist == '密碼錯誤，請重新輸入':
+            return render_template('login.html', message='密碼錯誤，請重新輸入')
+        else:
+            return render_template('register.html')
+    else:
+        return render_template('login.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', use_reloader=False)

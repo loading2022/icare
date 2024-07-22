@@ -1,6 +1,13 @@
 var start_button = document.querySelector(".start");
 var loader = document.querySelector(".loader");
 const upload_image = document.querySelector("#upload-image");
+
+
+window.onload = function() {
+    if (message){
+        alert(message);
+    }
+};
 function startRecording() {
     axios.post('/start_recording')
         .then(function(response) {
@@ -68,21 +75,7 @@ function pollForResultUrl() {
 
 var start_button = document.querySelector(".start");
 var img = document.querySelector(".image");
-/*
-function startRecording() {
-    axios.post('/start_recording')
-        .then(function(response) {
-            console.log('錄音已開始，正在等待視頻...');
-            img.classList.add("active");
-            start_button.classList.add("hidden");
-            pollForResultUrl();
-        })
-        .catch(function(error) {
-            console.log('錄音開始失敗:', error);
-            document.querySelector('.result').textContent = '錄音開始失敗';
-        });
-}
-*/
+
 function pollForResultUrl() {
     function checkForVideo() {
         axios.get('/get_result_url')
@@ -186,10 +179,6 @@ function uploadImage(){
     }
 }
 
-/*
-function showImage(imgUrl){
-    const img = document.querySelector("#avater-img");
-    img.src = imgUrl;
-    img.style = "display:block;";
+function register(){
+    
 }
-*/
