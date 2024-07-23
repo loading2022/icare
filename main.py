@@ -8,7 +8,7 @@ import requests
 import json
 import cv2
 import pyodbc
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session
 from deepface import DeepFace
 from dotenv import load_dotenv
 from datetime import datetime
@@ -41,42 +41,45 @@ def create_account(name, account, pwd):
     username = os.getenv('SQL_USERNAME')
     password = os.getenv('SQL_PWD')
 
-    conn = pyodbc.connect(
-        f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    )
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM icare_user WHERE account = ?", (account,))
-    if cursor.fetchone():
-        return render_template('login.html', message="帳號已註冊")
-    else:
-        cursor.execute('''
-        INSERT INTO icare_user (username, account, pwd) VALUES (?, ?, ?)
-        ''', (name, account, pwd))
-        conn.commit()
-    cursor.close()
-    conn.close()
+    connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+    try:
+        conn = pyodbc.connect(connection_string)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM icare_user WHERE account = ?", (account,))
+        if cursor.fetchone():
+            print("帳號已註冊")
+            return render_template('login.html', message="帳號已註冊"), 409
+        else:
+            cursor.execute("INSERT INTO icare_user (username, account, pwd) VALUES (?, ?, ?)", (name, account, pwd))
+            conn.commit()
+            return render_template('login.html', message="帳號註冊成功")
+    finally:
+        cursor.close()
+        conn.close()
 
-def search_user(account, password):
+    
+
+def search_user(account, pwd):
     server = os.getenv('SQL_SERVER')
     database = os.getenv('SQL_DATABASE_NAME')
     username = os.getenv('SQL_USERNAME')
     password = os.getenv('SQL_PWD')
 
-    conn = pyodbc.connect(
-        f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    )
+    connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+    conn = pyodbc.connect(connection_string)
     cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM icare_user WHERE account = ?", (account))
-    if cursor.fetchone()[0]>0:
-        cursor1 = conn.cursor()
-        cursor1.execute("SELECT COUNT(*) FROM icare_user WHERE account = ? AND pwd = ?", (account, password))
-        print(cursor1)
-        if cursor1.fetchone()[0]>0:
-            return True
-        else:
-            return jsonify({'Message':'密碼錯誤，請重新輸入'})
+    cursor.execute("SELECT user_id FROM icare_user WHERE account = ? AND pwd = ?", (account, pwd))
+    row = cursor.fetchone()
+    if row:
+        session['user_id'] = row.user_id
+        return render_template('index.html')
     else:
-        return False
+        cursor.execute("SELECT COUNT(*) FROM icare_user WHERE account = ?", (account))
+        if cursor.fetchone()[0] > 0:
+            return render_template('login.html', message="密碼錯誤，請重新輸入"), 401
+        else:
+            return render_template('register.html', message="帳號未註冊")
+
     
 def call_gpt(text, role, emotion):
     openai.api_key = openai_api_key
@@ -147,7 +150,7 @@ def create_did(text, img_url):
     return result_url
 
 class ContinuousRecognizer:
-    def __init__(self, role, imgurl):
+    def __init__(self, role, imgurl, user_id):
         self.speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
         self.speech_config.speech_recognition_language="zh-TW"
         self.audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
@@ -158,6 +161,7 @@ class ContinuousRecognizer:
         self.current_emotion = "未知"
         self.role = role
         self.imgurl = imgurl
+        self.user_id = user_id
 
     def start(self):
         self.recognizer.recognized.connect(self.recognized)
@@ -182,9 +186,10 @@ class ContinuousRecognizer:
                 currentDateAndTime = datetime.now()
                 emotion = self.current_emotion
                 cursor = conn.cursor()
+                print(self.user_id)
                 cursor.execute('''
                 INSERT INTO conversation_record (timestamp, user_id, message, respond, user_emotion) VALUES (?, ?, ?, ?, ?)
-                ''', (currentDateAndTime, 2, text, response_text, emotion)
+                ''', (currentDateAndTime, self.user_id, text, response_text, emotion)
                 )
                 conn.commit()
                 cursor.close()
@@ -249,8 +254,9 @@ def recognize_from_microphone():
     role = data.get('role')
     avater_img = request.get_json() 
     image_url = avater_img['imageUrl'] 
+    user_id = session.get('user_id') 
     print(f'image:{image_url}')
-    recognizer = ContinuousRecognizer(role, image_url)
+    recognizer = ContinuousRecognizer(role, image_url, user_id)
     recognizer.start()
     return jsonify({"status": "recognition started"})
 
@@ -266,31 +272,30 @@ def get_result_url():
 
 @app.route('/register', methods=['GET','POST'])
 def register():
-    try:
-        account = request.form.get("account")
-        password = request.form.get("password")
-        name = request.form.get("username")
-        if not account or not password or not username:
-            return render_template('register.html', message="帳號、名稱或密碼尚未填寫完成")
-        create_account(name, account, password)
-        return render_template('login.html')
-    except Exception as e:
-        return jsonify({"Error":f"錯誤:{str(e)}"})
+    if request.method == 'POST':
+        try:
+            account = request.form.get("account")
+            password = request.form.get("password")
+            name = request.form.get("username")
+            if not account or not password or not name:
+                return render_template('register.html', message="帳號、名稱或密碼尚未填寫完成")
+            return create_account(name, account, password)
+        except Exception as e:
+            return jsonify({"Error": f"錯誤:{str(e)}"}), 500
+    else:
+        return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        account = request.form.get("account")
-        password = request.form.get("password")
-        if not account or not password:
-            return render_template('login.html', message='帳號或密碼尚未填寫完成')
-        user_exist = search_user(account, password)
-        if user_exist == True:
-            return render_template('index.html')
-        elif user_exist == '密碼錯誤，請重新輸入':
-            return render_template('login.html', message='密碼錯誤，請重新輸入')
-        else:
-            return render_template('register.html')
+        try:
+            account = request.form.get("account")
+            password = request.form.get("password")
+            if not account or not password:
+                return render_template('login.html', message='帳號或密碼尚未填寫完成')
+            return search_user(account, password)
+        except Exception as e:
+            return jsonify({"Error": f"錯誤:{str(e)}"}), 500
     else:
         return render_template('login.html')
 
