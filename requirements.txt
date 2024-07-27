@@ -1,0 +1,7 @@
+pyodbc
+openai==0.28
+PyAudio
+pyannote.audio
+flask
+deepface
+python-dotenv

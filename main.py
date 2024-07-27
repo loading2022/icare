@@ -7,11 +7,16 @@ import openai
 import requests
 import json
 import cv2
-import pyodbc
+import pyodbc    
+import pyaudio
+import wave
+import numpy as np
 from flask import Flask, render_template, request, jsonify, session
 from deepface import DeepFace
 from dotenv import load_dotenv
 from datetime import datetime
+from pyannote.audio import Model, Inference
+from scipy.spatial.distance import cdist
 
 load_dotenv()
 
@@ -23,64 +28,54 @@ database = os.getenv('SQL_DATABASE_NAME')
 username = os.getenv('SQL_USERNAME')
 password = os.getenv('SQL_PWD')
 
-conn = pyodbc.connect(
-    f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-)
-
-
-
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET_KEY") 
 
 global img_url 
 result_queue = queue.Queue()
+distances = []
 
-def create_account(name, account, pwd):
-    server = os.getenv('SQL_SERVER')
-    database = os.getenv('SQL_DATABASE_NAME')
-    username = os.getenv('SQL_USERNAME')
-    password = os.getenv('SQL_PWD')
-
-    connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    try:
-        conn = pyodbc.connect(connection_string)
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM icare_user WHERE account = ?", (account,))
-        if cursor.fetchone():
-            print("帳號已註冊")
-            return render_template('login.html', message="帳號已註冊"), 409
-        else:
-            cursor.execute("INSERT INTO icare_user (username, account, pwd) VALUES (?, ?, ?)", (name, account, pwd))
-            conn.commit()
-            return render_template('login.html', message="帳號註冊成功")
-    finally:
-        cursor.close()
-        conn.close()
-
-    
-
-def search_user(account, pwd):
-    server = os.getenv('SQL_SERVER')
-    database = os.getenv('SQL_DATABASE_NAME')
-    username = os.getenv('SQL_USERNAME')
-    password = os.getenv('SQL_PWD')
-
-    connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
-    conn = pyodbc.connect(connection_string)
+def store_tracks(audio_path):
+    connection = f'DRIVER={{SQL SERVER}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+    conn = pyodbc.connect(connection)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM icare_user WHERE account = ? AND pwd = ?", (account, pwd))
-    row = cursor.fetchone()
-    if row:
-        session['user_id'] = row.user_id
-        return render_template('index.html')
-    else:
-        cursor.execute("SELECT COUNT(*) FROM icare_user WHERE account = ?", (account))
-        if cursor.fetchone()[0] > 0:
-            return render_template('login.html', message="密碼錯誤，請重新輸入"), 401
-        else:
-            return render_template('register.html', message="帳號未註冊")
+    model = Model.from_pretrained("pyannote/wespeaker-voxceleb-resnet34-LM")
+    inference = Inference(model, window="whole")
+    track_embedding = inference(audio_path).reshape(1, -1)
+    result = calculate_simliarity(audio_path)
+    threshold = 0.4
+    for dist in result:
+        if dist < threshold:
+            return render_template('login.html', message = "使用者已建立")
+        
+    query = "INSERT INTO tracks (Embedding) VALUES (?)"
+    cursor.execute(query, track_embedding.tobytes())
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return render_template('login.html', message="帳號註冊成功")
 
-    
+def retrieve_tracks():
+    connection = f'DRIVER={{SQL SERVER}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+    conn = pyodbc.connect(connection)
+    cursor = conn.cursor()
+    query = "SELECT * FROM tracks"
+    cursor.execute(query)
+    results = cursor.fetchall()
+    tracks = [np.frombuffer(row[1], dtype=np.float32).reshape(1, -1) for row in results]
+    return tracks
+
+def calculate_simliarity(audio_path):
+    model = Model.from_pretrained("pyannote/wespeaker-voxceleb-resnet34-LM")
+    inference = Inference(model, window="whole")
+    old_tracks = retrieve_tracks()
+    new_track = inference(audio_path).reshape(1, -1)
+    for old_track in old_tracks:
+        old_track = old_track.reshape(1, -1)
+        distance = cdist(old_track , new_track, metric="cosine")[0,0]
+        distances.append(distance)
+    return distances
+
 def call_gpt(text, role, emotion):
     openai.api_key = openai_api_key
     print(emotion)
@@ -149,6 +144,11 @@ def create_did(text, img_url):
     print(result_url)
     return result_url
 
+def send_role():
+    data = request.json
+    role = data.get('role')
+    print(f"User role selected: {role}")
+    return jsonify({'status': 'success', 'role': role})
 class ContinuousRecognizer:
     def __init__(self, role, imgurl, user_id):
         self.speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
@@ -237,16 +237,9 @@ class ContinuousRecognizer:
         cv2.destroyAllWindows()
 
 
-
 @app.route('/')
 def index():
     return render_template('register.html')
-
-def send_role():
-    data = request.json
-    role = data.get('role')
-    print(f"User role selected: {role}")
-    return jsonify({'status': 'success', 'role': role})
 
 @app.route("/start_recording", methods=["POST"])
 def recognize_from_microphone():
@@ -270,35 +263,80 @@ def get_result_url():
     else:
         return jsonify({"result_url": result_url})
 
-@app.route('/register', methods=['GET','POST'])
-def register():
-    if request.method == 'POST':
-        try:
-            account = request.form.get("account")
-            password = request.form.get("password")
-            name = request.form.get("username")
-            if not account or not password or not name:
-                return render_template('register.html', message="帳號、名稱或密碼尚未填寫完成")
-            return create_account(name, account, password)
-        except Exception as e:
-            return jsonify({"Error": f"錯誤:{str(e)}"}), 500
-    else:
-        return render_template('register.html')
+@app.route('/register_recording', methods=['GET','POST'])
+def register_recording():
+    try:
+        chunk = 1024                    
+        sample_format = pyaudio.paInt16 
+        channels = 2                    
+        fs = 44100                      
+        seconds = 5                     
+        filename = "temp.wav"   
+        p = pyaudio.PyAudio()         
+        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        try:
-            account = request.form.get("account")
-            password = request.form.get("password")
-            if not account or not password:
-                return render_template('login.html', message='帳號或密碼尚未填寫完成')
-            return search_user(account, password)
-        except Exception as e:
-            return jsonify({"Error": f"錯誤:{str(e)}"}), 500
-    else:
-        return render_template('login.html')
+        frames = []                     
 
+        for i in range(0, int(fs / chunk * seconds)):
+            data = stream.read(chunk)
+            frames.append(data)          
+        stream.stop_stream()             
+        stream.close()                   
+        p.terminate()
+
+        wf = wave.open(filename, 'wb')   
+        wf.setnchannels(channels)        
+        wf.setsampwidth(p.get_sample_size(sample_format)) 
+        wf.setframerate(fs)              
+        wf.writeframes(b''.join(frames)) 
+        wf.close()
+        result = store_tracks("temp.wav")
+        return result
+
+        
+    except Exception as e:
+        return jsonify({"Error": f"錯誤:{str(e)}"}), 500
+
+@app.route('/login_recording', methods=['GET','POST'])
+def login_recording():
+    try:
+        chunk = 1024                    
+        sample_format = pyaudio.paInt16 
+        channels = 2                    
+        fs = 44100                      
+        seconds = 5                     
+        filename = "temp.wav"   
+        p = pyaudio.PyAudio()         
+        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True)
+
+        frames = []                     
+
+        for i in range(0, int(fs / chunk * seconds)):
+            data = stream.read(chunk)
+            frames.append(data)          
+        stream.stop_stream()             
+        stream.close()                   
+        p.terminate()
+
+        wf = wave.open(filename, 'wb')   
+        wf.setnchannels(channels)        
+        wf.setsampwidth(p.get_sample_size(sample_format)) 
+        wf.setframerate(fs)              
+        wf.writeframes(b''.join(frames)) 
+        wf.close()
+        result = calculate_simliarity(filename)
+
+    
+        threshold = 0.4
+        for dist in result:
+            if dist < threshold:
+                idx = idx + 1
+                return render_template('index.html')
+            
+        return render_template('register.html', message="尚未註冊")
+    except Exception as e:
+        return jsonify({"Error": f"錯誤:{str(e)}"}), 500
+    
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', use_reloader=False)
 

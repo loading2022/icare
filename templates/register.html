@@ -6,22 +6,11 @@
     <title>Register</title>
 </head>
 <body>
+    <h1>註冊使用者</h1>
+    <span>此系統使用語音登入，請先錄一段語音，錄音按下後即會開始錄音，五秒後錄音會自動停止</span>
     
-    <form method="post" action="/register">
-        <div class="name">
-            <label for="username">暱稱:</label>
-            <input type="text" id="username" name="username">
-        </div>
-        <div class="acc">
-            <label for="account">帳號:</label>
-            <input type="text" id="account" name="account">
-        </div>
-        <div class="pwd">
-            <label for="password">密碼:</label>
-            <input type="password" id="password" name="password">
-        </div>
-        <input type="submit" value="註冊" id="register-button">
-    </form>
+    <a href="/register_recording">錄音</a>
+
     {% if message %}
     <script>
     document.addEventListener('DOMContentLoaded', (event) => {
@@ -30,5 +19,4 @@
     </script>
     {% endif %}
 </body>
-<script src="../static/index.js"></script>
 </html>
