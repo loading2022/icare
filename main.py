@@ -34,7 +34,8 @@ app.secret_key = os.getenv("APP_SECRET_KEY")
 global img_url 
 result_queue = queue.Queue()
 distances = []
-
+user_ids = []
+sound_dict = {}
 def store_tracks(audio_path):
     connection = f'DRIVER={{SQL SERVER}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
     conn = pyodbc.connect(connection)
@@ -42,7 +43,7 @@ def store_tracks(audio_path):
     model = Model.from_pretrained("pyannote/wespeaker-voxceleb-resnet34-LM")
     inference = Inference(model, window="whole")
     track_embedding = inference(audio_path).reshape(1, -1)
-    result = calculate_simliarity(audio_path)
+    result, ids = calculate_similarity(audio_path)
     threshold = 0.4
     for dist in result:
         if dist < threshold:
@@ -62,19 +63,28 @@ def retrieve_tracks():
     query = "SELECT * FROM tracks"
     cursor.execute(query)
     results = cursor.fetchall()
-    tracks = [np.frombuffer(row[1], dtype=np.float32).reshape(1, -1) for row in results]
-    return tracks
+    tracks_dict = {}
+    for row in results:
+        track_id = row[0]
+        track_data = np.frombuffer(row[1], dtype=np.float32).reshape(1, -1)
+        tracks_dict[track_id] = track_data
+    return tracks_dict
 
-def calculate_simliarity(audio_path):
+def calculate_similarity(audio_path):
     model = Model.from_pretrained("pyannote/wespeaker-voxceleb-resnet34-LM")
     inference = Inference(model, window="whole")
-    old_tracks = retrieve_tracks()
+    tracks_dict = retrieve_tracks()
     new_track = inference(audio_path).reshape(1, -1)
-    for old_track in old_tracks:
+    distances = []
+    user_ids = []
+    
+    for track_id, old_track in tracks_dict.items():
         old_track = old_track.reshape(1, -1)
-        distance = cdist(old_track , new_track, metric="cosine")[0,0]
+        distance = cdist(old_track, new_track, metric="cosine")[0, 0]
         distances.append(distance)
-    return distances
+        user_ids.append(track_id)
+    
+    return distances, user_ids
 
 def call_gpt(text, role, emotion):
     openai.api_key = openai_api_key
@@ -180,6 +190,8 @@ class ContinuousRecognizer:
     def respond(self, text):
         try:
             if text.strip():
+                connection = f'DRIVER={{SQL SERVER}};SERVER={server};DATABASE={database};UID={username};PWD={password}'
+                conn = pyodbc.connect(connection)
                 print(f"Responding to text: {text}") 
                 response_text = call_gpt(text, self.role, self.current_emotion)
                 print("GPT Response: {}".format(response_text))  
@@ -273,7 +285,7 @@ def register_recording():
         seconds = 5                     
         filename = "temp.wav"   
         p = pyaudio.PyAudio()         
-        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True)
+        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True, input_device_index=0)
 
         frames = []                     
 
@@ -307,7 +319,7 @@ def login_recording():
         seconds = 5                     
         filename = "temp.wav"   
         p = pyaudio.PyAudio()         
-        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True)
+        stream = p.open(format=sample_format, channels=channels, rate=fs, frames_per_buffer=chunk, input=True, input_device_index=0)
 
         frames = []                     
 
@@ -324,13 +336,12 @@ def login_recording():
         wf.setframerate(fs)              
         wf.writeframes(b''.join(frames)) 
         wf.close()
-        result = calculate_simliarity(filename)
+        result, ids = calculate_similarity(filename)
 
-    
         threshold = 0.4
-        for dist in result:
+        for idx, dist in enumerate(result):
             if dist < threshold:
-                idx = idx + 1
+                session["user_id"] = ids[idx]
                 return render_template('index.html')
             
         return render_template('register.html', message="尚未註冊")
