@@ -1,0 +1,97 @@
+.container{
+    max-width:1980px;
+    margin:0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.result{
+    height:70vh;
+}
+.loader {
+  border: 16px solid #f3f3f3;
+  border-top: 16px solid #3498db;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.result video{
+    border-radius:10px;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-current-time-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-time-remaining-display {
+  display: none !important;
+}
+
+video::-webkit-media-controls-volume-control-container {
+  display: none !important;
+}
+
+video::-webkit-media-controls-fullscreen-button {
+  display: none !important;
+}
+video::-webkit-media-controls-timeline {
+  display: none !important;
+}
+.start{
+    border-radius: 50%;
+    width:100px;
+    height:100px;
+    border:0px;
+    background-color: darkcyan;
+    color:azure;
+    font-size:18px;
+}
+.start:hover{
+    cursor: pointer;
+    background-color: green;
+    color:white;
+}
+.hidden{
+    display: none;
+}
+.active{
+    display: block;
+}
+
+.medicine-reminder {
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.time-checkboxes {
+  display: none;
+  margin-left: 20px;
+}
+
+.time-checkboxes label {
+  display: block;
+  margin-top: 5px;
+}
+.day-checkbox {
+  margin-bottom: 15px;
+}
+
+.inputs {
+  margin-left: 20px;
+  margin-top: 10px;
+  display: none;
+}

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <h1>註冊使用者</h1>
+    <span>此系統使用語音登入，請先錄一段語音，錄音按下後即會開始錄音，五秒後錄音會自動停止</span>
+    
+    <a href="/register_recording">錄音</a>
+
+    {% if message %}
+    <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        alert('{{ message }}');
+    });
+    </script>
+    {% endif %}
+</body>
+</html>
