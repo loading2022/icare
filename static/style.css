@@ -1,11 +1,4 @@
-.container{
-    max-width:1980px;
-    margin:0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
+/*
 .result{
     height:70vh;
 }
@@ -67,4 +60,271 @@ video::-webkit-media-controls-timeline {
 }
 .active{
     display: block;
+}
+
+.medicine-reminder {
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.time-checkboxes {
+  display: none;
+  margin-left: 20px;
+}
+
+.time-checkboxes label {
+  display: block;
+  margin-top: 5px;
+}
+.day-checkbox {
+  margin-bottom: 15px;
+}
+
+.inputs {
+  margin-left: 20px;
+  margin-top: 10px;
+  display: none;
+}*/
+/*new*/
+/*Reset CSS*/
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+/*Global*/
+*, *:before, *:after{
+  box-sizing: border-box;
+}
+body{
+  font-family:"Noto Sans TC", sans-serif;
+  background-color: #D2D9D8;
+}
+.container{
+  max-width:100%;
+  margin: 0 auto;
+}
+button{
+  background-color: transparent;
+  border:0px;
+}
+/*register & login*/
+.description{
+  font-size: 40px;
+  color:black;
+  font-weight:500;
+  margin: 50px;
+}
+.check_sentence{
+  font-size: 64px;
+  font-weight: 800;
+  color:#2E4036;
+}
+.recording{
+  width: 200px;
+  height: 200px;
+  border-radius:50%;
+  background-color: #708C8C9E;
+  display:flex;
+  align-items: center;
+  justify-content: center;
+  margin-top:80px;
+}
+
+.fa-microphone{
+  font-size: 91.13px;
+}
+/*index.html*/
+.index_wrap{
+  display: flex;
+  gap:60px;
+  padding:20px;
+}
+
+.alert{
+  width: 428px;
+  border: 1px;
+  border-radius:20px;
+  background-color: white;
+  margin-bottom:30px;
+  padding:30px;
+  color: #633B48;
+}
+.alert h2{
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 27.24px;
+}
+.alert hr{
+  color:lightgray;
+  margin: 15px 0px;
+}
+.alert>input, .alert select{
+  height:47px;
+  background-color:#D9D9D9;
+  border:0px;
+  border-radius:10px;
+  padding:5px;
+}
+.add{
+  width:47px;
+  height:47px;
+  background-color: #8C6658;
+  border-radius:10px;
+  border:0px;
+}
+.list{
+  height: 225px;
+  margin-top:20px;
+  overflow-y: auto;
+}
+.item{
+  margin-right: 10px;
+}
+.fa-trash-can{
+  float: right;
+}
+.chosen_area{
+  display: flex;
+  gap:23px;
+}
+.button_group{
+  display: flex;
+  gap:5px;
+}
+.button_group button{
+  width: 76px;
+  height: 34px;
+  border-radius: 7px;
+  background: #B2BCBA;
+  font-size: 20px;
+  font-weight: 700;
+  border:0px;
+  color: #2E4036;
+}
+.microphone{
+  display: flex;
+  gap:10px;
+  margin-top:10px;
+}
+.user_input{
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32.69px;
+  color: #2E4036;
+  vertical-align: middle;
+}
+
+.right_chosen button{
+  background-color: transparent;
+  border:0px;
+}
+video{
+  border-radius:10px;
+  border:2px solid black;
+  margin-top:30px;
+  height:60vh;
+}
+
+video::-webkit-media-controls-play-button {
+display: none !important;
+}
+
+video::-webkit-media-controls-current-time-display {
+display: none !important;
+}
+
+video::-webkit-media-controls-time-remaining-display {
+display: none !important;
+}
+
+video::-webkit-media-controls-volume-control-container {
+display: none !important;
+}
+
+video::-webkit-media-controls-fullscreen-button {
+display: none !important;
+}
+video::-webkit-media-controls-timeline {
+display: none !important;
+}
+.history{
+  overflow-y: auto;
+  border-radius: 22px;
+  opacity: 0.5px;
+  background-color: #DEE3E2;
+  margin-top:40px;
+  padding:30px;
+}
+.history h2{
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 27.24px;
+  color: #8C6658;
+  text-align:center;
+}
+.history ul{
+  height: 220px;
+  overflow-y: auto;
+}
+.history li{
+  background-color: white;
+  border-radius: 10px;
+  opacity: 0.85px;
+  margin-top:10px;
+  padding: 10px;
+  margin-right: 5px;
+}
+.history p{
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 27.24px;
+  color: #8C6658;
 }

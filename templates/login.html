@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>recording</title>
+    <title>登入</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
-    <h1>登入使用者</h1>
-    <span>此系統使用語音登入，錄音按下後即會開始錄音，五秒後錄音會自動停止</span>
-
-    <a href="/login_recording">錄音</a>
+    <div class="container">
+        <p class="description">請在 5 秒內念出以下句子來註冊</p>
+        <p class="check_sentence">請確認我的聲音</p>
+        <a href="/login_recording" class="recording"><i class="fa-solid fa-microphone" style="color: #2e4036;"></i></a>
+    </div>
     
     {% if message %}
     <script>

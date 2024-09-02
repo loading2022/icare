@@ -136,7 +136,7 @@ function startRecording() {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ role: selectedRole, imageUrl:imgUrl }),
+        body: JSON.stringify({ role: selectedRole, imgUrl:imgUrl }),
     })
     .then(response => response.json())
     .then(data => {
@@ -148,28 +148,22 @@ function startRecording() {
     });
 }
 
-function uploadImage(){
+function uploadImage() {
     const imageInput = document.getElementById('imageInput');
     if (imageInput.files.length > 0) {
         const file = imageInput.files[0];
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('type', 'image');
-        formData.append('title', 'Simple upload');
-        formData.append('description', 'This is a simple image upload in Imgur');
 
-        fetch('https://api.imgur.com/3/image', {
+        fetch('/upload_image', {
             method: 'POST',
-            headers: {
-                Authorization: 'Client-ID fd0c9e6694ddbfd'
-            },
             body: formData
         })
         .then(response => response.json())
         .then(data => {
-            imgUrl = data.data.link;
-            console.log(imgUrl);
-            //showImage(imgUrl);
+            imgUrl = data.filepath;  // 保存圖片路徑到全局變數
+            console.log('Image saved at:', imgUrl);
+            // 不再需要額外發送 imgUrl 到後端，因為會在 startRecording 時傳遞
         })
         .catch((error) => {
             alert("Error:", error);
@@ -179,6 +173,173 @@ function uploadImage(){
     }
 }
 
+
+
+
 function register(){
     
 }
+
+function toggleTime(day) {
+    const timeCheckboxes = document.getElementById(`${day}-times`);
+    if (timeCheckboxes.style.display === "none" || timeCheckboxes.style.display === "") {
+        timeCheckboxes.style.display = "block";
+    } else {
+        timeCheckboxes.style.display = "none";
+    }
+}
+
+function toggleInput(timeOfDay) {
+    const inputField = document.getElementById(`${timeOfDay}-time`);
+    if (inputField.style.display === "none" || inputField.style.display === "") {
+        inputField.style.display = "inline";
+    } else {
+        inputField.style.display = "none";
+    }
+}
+
+
+function submitForm() {
+    const days = ['monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const data = {};
+
+    days.forEach(day => {
+        data[day] = {
+            morning: document.querySelector(`#${day}-times input[value='morning']`).checked ? 1 : 0,
+            noon: document.querySelector(`#${day}-times input[value='noon']`).checked ? 1 : 0,
+            evening: document.querySelector(`#${day}-times input[value='evening']`).checked ? 1 : 0,
+            morning_note: document.querySelector(`#${day}-times input[name='morning-time']`).value || "",
+            noon_note: document.querySelector(`#${day}-times input[name='noon-time']`).value || "",
+            evening_note: document.querySelector(`#${day}-times input[name='evening-time']`).value || "",
+        };
+    });
+
+    console.log('Sending data:', JSON.stringify(data));  // 调试输出
+
+    fetch('/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        alert('資料已成功提交！');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+
+function resetForm() {
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+    document.querySelectorAll('.text-input').forEach(input => input.value = '');
+}
+
+
+function resetForm() {
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+    const textboxes = document.querySelectorAll('.text-input');
+    textboxes.forEach(textbox => {
+        textbox.value = '';
+    });
+    const timeCheckboxes = document.querySelectorAll('.time-checkboxes');
+    timeCheckboxes.forEach(timeCheckbox => timeCheckbox.style.display = 'none');
+}
+
+function toggleInputs(dayId) {
+    const inputsDiv = document.getElementById(dayId + '-inputs');
+    const checkbox = document.getElementById(dayId);
+
+    if (checkbox.checked) {
+        inputsDiv.style.display = 'block';
+    } else {
+        inputsDiv.style.display = 'none';
+    }
+}
+
+function submitForm_comeback() {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const data = {};
+
+    days.forEach(day => {
+        const departmentInput = document.querySelector(`#${day}-inputs input[type='text']`);
+        const timeInput = document.querySelector(`#${day}-inputs input[type='time']`);
+
+        if (departmentInput && timeInput) {
+            data[day] = {
+                department: departmentInput.value || "",
+                time: timeInput.value || "",
+            };
+        } else {
+            data[day] = {
+                department: "",
+                time: ""
+            };
+        }
+    });
+
+    console.log('Sending data:', JSON.stringify(data));  // 調試輸出
+
+    fetch('/submit_clinic', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.message) {
+            alert('資料已成功提交！');
+        } else {
+            alert('提交失敗，請重試。');
+        }
+    })
+    .catch(error => {
+        console.error('提交失敗：', error);
+        alert('提交失敗，請重試。');
+    });
+}
+
+
+function resetForm_comeback() {
+    document.getElementById('comebackForm').reset();
+    const inputs = document.querySelectorAll('.inputs');
+    inputs.forEach(inputDiv => inputDiv.style.display = 'none');
+}
+
+
+function uploadVoice() {
+    const fileInput = document.getElementById('voiceInput');
+    const file = fileInput.files[0]; 
+    console.log(file);
+    if (!file) {
+        alert('請選擇檔案');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 使用 Fetch API 來發送檔案
+    fetch('/upload_voice', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        alert('上傳成功!');
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('上傳失敗，請重新上傳');
+    });
+}
+
+
+
