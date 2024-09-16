@@ -1,4 +1,10 @@
 # iCare 日照機器人
+### OverView
+## iCare: A System for Conversing with the Elderly to Alleviate Dementia
+1. Utilizes **Deepface** and **OpenCV** for emotion recognition, and **Azure Speech to Text** to convert speech into text.
+2. The recognized emotions and converted text are used as inputs to generate responses through the **OpenAI API** (GPT).
+3. The generated response is then passed to **MuseTalk** to create a virtual avatar.
+
 ### 待開發功能
 > 吃藥回診提醒:alert <br>
 > 回報問題:report <br>
@@ -15,27 +21,25 @@
 ## Installation Guide
 
 1. Download [MuseTalk](https://github.com/TMElyralab/MuseTalk) and place it in your folder.
-2. Download [Whisper](https://github.com/openai/whisper) and place it in your folder.
-3. Place both in the same folder with the following structure:
+2. Place both in the same folder with the following structure:
     ```
     icare/
     ├── MuseTalk/
-    ├── Whisper/
     ├── main.py
     ├── requirements.txt
     ├── templates/
     └── static/
     ```
-4. Create a new environment:
+3. Create a new environment:
     ```
     conda create --name myenv python=3.8
     ```
-5. Switch to the environment and run the following command:
+4. Switch to the environment and run the following command:
     ```
     pip install -r requirements.txt
     ```
-6. Get API keys of Azure, OpenAI and D-ID. Then put them in .env file.
-7. Run the program:
+5. Get API keys of Azure, OpenAI. Then put them in .env file.
+6. Run the program:
     ```
     python main.py
     ```
