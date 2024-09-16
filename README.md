@@ -16,7 +16,6 @@ iCare: A System for Conversing with the Elderly to Alleviate Dementia
 2. OpenAI API
 3. MuseTalk
 4. Deepface & OpenCV
-5. Whisper
 ## Installation Guide
 
 1. Download [MuseTalk](https://github.com/TMElyralab/MuseTalk) and place it in your folder.
