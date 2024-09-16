@@ -41,3 +41,6 @@ iCare: A System for Conversing with the Elderly to Alleviate Dementia
     ```
     python main.py
     ```
+## Acknowledgment
+
+Special thanks to ```MuseTalk``` for serving as the model for virtual avatar output.
