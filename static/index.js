@@ -136,11 +136,7 @@ function startRecording() {
         headers: {
             'Content-Type': 'application/json',
         },
-<<<<<<< HEAD
         body: JSON.stringify({ role: selectedRole, imgUrl:imgUrl }),
-=======
-        body: JSON.stringify({ role: selectedRole, imageUrl:imgUrl }),
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
     })
     .then(response => response.json())
     .then(data => {
@@ -152,44 +148,22 @@ function startRecording() {
     });
 }
 
-<<<<<<< HEAD
 function uploadImage() {
-=======
-function uploadImage(){
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
     const imageInput = document.getElementById('imageInput');
     if (imageInput.files.length > 0) {
         const file = imageInput.files[0];
         const formData = new FormData();
         formData.append('image', file);
-<<<<<<< HEAD
 
         fetch('/upload_image', {
             method: 'POST',
-=======
-        formData.append('type', 'image');
-        formData.append('title', 'Simple upload');
-        formData.append('description', 'This is a simple image upload in Imgur');
-
-        fetch('https://api.imgur.com/3/image', {
-            method: 'POST',
-            headers: {
-                Authorization: 'Client-ID fd0c9e6694ddbfd'
-            },
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
             body: formData
         })
         .then(response => response.json())
         .then(data => {
-<<<<<<< HEAD
             imgUrl = data.filepath;  // 保存圖片路徑到全局變數
             console.log('Image saved at:', imgUrl);
             // 不再需要額外發送 imgUrl 到後端，因為會在 startRecording 時傳遞
-=======
-            imgUrl = data.data.link;
-            console.log(imgUrl);
-            //showImage(imgUrl);
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
         })
         .catch((error) => {
             alert("Error:", error);
@@ -199,7 +173,6 @@ function uploadImage(){
     }
 }
 
-<<<<<<< HEAD
 
 
 
@@ -227,9 +200,44 @@ function toggleInput(timeOfDay) {
 
 
 function submitForm() {
-    // Add your form submission logic here
-    alert('Form submitted!');
+    const days = ['monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const data = {};
+
+    days.forEach(day => {
+        data[day] = {
+            morning: document.querySelector(`#${day}-times input[value='morning']`).checked ? 1 : 0,
+            noon: document.querySelector(`#${day}-times input[value='noon']`).checked ? 1 : 0,
+            evening: document.querySelector(`#${day}-times input[value='evening']`).checked ? 1 : 0,
+            morning_note: document.querySelector(`#${day}-times input[name='morning-time']`).value || "",
+            noon_note: document.querySelector(`#${day}-times input[name='noon-time']`).value || "",
+            evening_note: document.querySelector(`#${day}-times input[name='evening-time']`).value || "",
+        };
+    });
+
+    console.log('Sending data:', JSON.stringify(data));  // 调试输出
+
+    fetch('/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        alert('資料已成功提交！');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 }
+
+
+function resetForm() {
+    document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+    document.querySelectorAll('.text-input').forEach(input => input.value = '');
+}
+
 
 function resetForm() {
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -242,9 +250,95 @@ function resetForm() {
     timeCheckboxes.forEach(timeCheckbox => timeCheckbox.style.display = 'none');
 }
 
+function toggleInputs(dayId) {
+    const inputsDiv = document.getElementById(dayId + '-inputs');
+    const checkbox = document.getElementById(dayId);
 
-=======
-function register(){
-    
+    if (checkbox.checked) {
+        inputsDiv.style.display = 'block';
+    } else {
+        inputsDiv.style.display = 'none';
+    }
 }
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
+
+function submitForm_comeback() {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const data = {};
+
+    days.forEach(day => {
+        const departmentInput = document.querySelector(`#${day}-inputs input[type='text']`);
+        const timeInput = document.querySelector(`#${day}-inputs input[type='time']`);
+
+        if (departmentInput && timeInput) {
+            data[day] = {
+                department: departmentInput.value || "",
+                time: timeInput.value || "",
+            };
+        } else {
+            data[day] = {
+                department: "",
+                time: ""
+            };
+        }
+    });
+
+    console.log('Sending data:', JSON.stringify(data));  // 調試輸出
+
+    fetch('/submit_clinic', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.message) {
+            alert('資料已成功提交！');
+        } else {
+            alert('提交失敗，請重試。');
+        }
+    })
+    .catch(error => {
+        console.error('提交失敗：', error);
+        alert('提交失敗，請重試。');
+    });
+}
+
+
+function resetForm_comeback() {
+    document.getElementById('comebackForm').reset();
+    const inputs = document.querySelectorAll('.inputs');
+    inputs.forEach(inputDiv => inputDiv.style.display = 'none');
+}
+
+
+function uploadVoice() {
+    const fileInput = document.getElementById('voiceInput');
+    const file = fileInput.files[0]; 
+    console.log(file);
+    if (!file) {
+        alert('請選擇檔案');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 使用 Fetch API 來發送檔案
+    fetch('/upload_voice', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Success:', data);
+        alert('上傳成功!');
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert('上傳失敗，請重新上傳');
+    });
+}
+
+

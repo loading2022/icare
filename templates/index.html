@@ -7,25 +7,43 @@
     <link rel="stylesheet" href="../static/style.css">
 </head>
 <body>
+    
     <div class="container">
+        
         <div class="button-group">
             <button onclick="sendUserRole('照護員')">照護員</button>
             <button onclick="sendUserRole('平輩')">平輩</button>
             <button onclick="sendUserRole('晚輩')">晚輩</button>
-<<<<<<< HEAD
-=======
         </div>
         <input type="file" id="imageInput" accept="image/*">
         <button onclick="uploadImage()">上傳圖片</button>
-        <div class="result">
-            <p id="selected-role" style="display: none;">您選擇的角色是: <span id="role-name">點選完畢後，請勿重複點選</span></p>
->>>>>>> a20a2cb5504b302890794644172b802e61a0d034
-        </div>
-        <input type="file" id="imageInput" accept="image/*">
-        <button onclick="uploadImage()">上傳圖片</button>
+        <input type="file" id="voiceInput" accept="audio/*">
+        <button onclick="uploadVoice()">上傳聲音</button>
         <div class="result">
             <p id="selected-role" style="display: none;">您選擇的角色是: <span id="role-name">點選完畢後，請勿重複點選</span></p>
         </div>
+        
+        {% if reminders %}
+            <h2>用藥提醒</h2>
+            <ul>
+                {% for key, value in reminders.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>沒有找到用藥提醒資料。</p>
+        {% endif %}
+
+        {% if clinic_reminders %}
+        <h2>回診提醒</h2>
+        <ul>
+            {% for key, value in clinic_reminders.items() %}
+                <li>{{ key }}: {{ value }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+            <p>没有找到回診提醒資料。</p>
+        {% endif %}
         <div class="medicine-reminder">
             <h3>吃藥提醒</h3>
             <div>
@@ -164,6 +182,61 @@
             <button onclick="submitForm()">送出</button>
             <button onclick="resetForm()">重填</button>
         </div>
+        <h2>回診提醒設定</h2>
+    <form id="comebackForm">
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Monday" onclick="toggleInputs('Monday')"> 星期一</label>
+            <div id="Monday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="monday_department">
+                <input type="time" name="monday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Tuesday" onclick="toggleInputs('Tuesday')"> 星期二</label>
+            <div id="Tuesday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="tuesday_department">
+                <input type="time" name="tuesday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Wednesday" onclick="toggleInputs('Wednesday')"> 星期三</label>
+            <div id="Wednesday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="wednesday_department">
+                <input type="time" name="wednesday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Thursday" onclick="toggleInputs('Thursday')"> 星期四</label>
+            <div id="Thursday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="thursday_department">
+                <input type="time" name="thursday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Friday" onclick="toggleInputs('Friday')"> 星期五</label>
+            <div id="Friday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="friday_department">
+                <input type="time" name="friday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Saturday" onclick="toggleInputs('Saturday')"> 星期六</label>
+            <div id="Saturday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="saturday_department">
+                <input type="time" name="saturday_time">
+            </div>
+        </div>
+        <div class="day-checkbox">
+            <label><input type="checkbox" id="Sunday" onclick="toggleInputs('Sunday')"> 星期日</label>
+            <div id="Sunday-inputs" class="inputs">
+                <input type="text" placeholder="回診科別" name="sunday_department">
+                <input type="time" name="sunday_time">
+            </div>
+        </div>
+        <button type="button" onclick="submitForm_comeback()">送出</button>
+        <button type="button" onclick="resetForm_comeback()">重填</button>
+    </form>
+
         
 
         <button onclick="startRecording()" class="start">開始識別</button>
@@ -171,6 +244,16 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="../static/index.js"></script>
-    
+    {% if reminder_message %}
+    <script>
+        alert("{{ reminder_message }}");
+    </script>
+    {% endif %}
+
+    {% if clinic_reminder_message %}
+        <script>
+            alert("{{ clinic_reminder_message }}");
+        </script>
+    {% endif %}
 </body>
 </html>

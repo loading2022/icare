@@ -86,3 +86,12 @@ video::-webkit-media-controls-timeline {
   display: block;
   margin-top: 5px;
 }
+.day-checkbox {
+  margin-bottom: 15px;
+}
+
+.inputs {
+  margin-left: 20px;
+  margin-top: 10px;
+  display: none;
+}

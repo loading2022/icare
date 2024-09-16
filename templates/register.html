@@ -6,10 +6,22 @@
     <title>Register</title>
 </head>
 <body>
+    <a href="/familylogin">家屬登入</a>
+    <a href="/familyregister">家屬註冊</a>
     <h1>註冊使用者</h1>
     <span>此系統使用語音登入，請先錄一段語音，錄音按下後即會開始錄音，五秒後錄音會自動停止</span>
     
     <a href="/register_recording">錄音</a>
+    
+    <script>
+        function family_register() {
+            window.location.href = '/familyregister.html'; 
+        }
+
+        function family_login() {
+            window.location.href = '/familylogin.html'; 
+        }
+    </script>
 
     {% if message %}
     <script>
@@ -18,5 +30,6 @@
     });
     </script>
     {% endif %}
+    
 </body>
 </html>

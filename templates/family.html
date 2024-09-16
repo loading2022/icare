@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Home Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #d0d9da;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .record {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        .btn {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>家屬{{ family_name }}:以下為對話紀錄</h1>
+
+        {% for conversation in conversations %}
+        <div class="record">
+            <p>問：{{ conversation[1] }}</p>
+            <p>答：{{ conversation[2] }}</p>
+            <p>時間：{{ conversation[0] }}</p>
+        </div>
+        {% else %}
+        <p>沒有記錄到相關的對話。</p>
+        {% endfor %}
+
+        <a href="/familylogin" class="btn">回登入頁面</a>
+    </div>
+</body>
+</html>

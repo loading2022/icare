@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>註冊頁面</title>
+    <style>
+        body {
+            background-color: #d3d3d3;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 300px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: #e8f0fe;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="button"],
+        input[type="submit"] {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #6495ED;
+            color: white;
+            cursor: pointer;
+        }
+        input[type="button"]:hover,
+        input[type="submit"]:hover {
+            background-color: #4169E1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>註冊</h2>
+        <form method="post">
+            <label for="name">姓名：</label>
+            <input type="text" id="name" name="name" required>
+
+            <label for="phone">電話：</label>
+            <input type="text" id="phone" name="phone" required>
+
+            <label for="email">Email：</label>
+            <input type="email" id="email" name="email" required>
+
+            <label for="family-id">家屬編號：</label>
+            <select id="family-id" name="family-id">
+            {% for user_id in user_ids %}
+                <option value="{{ user_id }}">{{ user_id }}</option>
+            {% endfor %}
+                <!-- More options as needed -->
+            </select>
+
+            <label for="password">密碼：</label>
+            <input type="password" id="password" name="password" required>
+
+            <div class="button-container">
+                <input type="reset" value="重設">
+                <a href="/familylogin">登入頁面</a>
+                <input type="submit" value="註冊">
+            </div>
+        </form>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          {% for category, message in messages %}
+            alert('{{ message | safe }}');
+          {% endfor %}
+        </script>
+      {% endif %}
+    {% endwith %}
+</body>
+</html>
