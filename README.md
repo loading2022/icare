@@ -1,6 +1,6 @@
 # iCare 日照機器人
-### OverView
-## iCare: A System for Conversing with the Elderly to Alleviate Dementia
+## OverView
+#### iCare: A System for Conversing with the Elderly to Alleviate Dementia
 1. Utilizes **Deepface** and **OpenCV** for emotion recognition, and **Azure Speech to Text** to convert speech into text.
 2. The recognized emotions and converted text are used as inputs to generate responses through the **OpenAI API** (GPT).
 3. The generated response is then passed to **MuseTalk** to create a virtual avatar.
