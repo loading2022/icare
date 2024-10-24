@@ -3,6 +3,5 @@ flask
 deepface
 python-dotenv
 azure-cognitiveservices-speech
-libgl1-mesa-glx
 opencv-python
 
