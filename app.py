@@ -9,8 +9,6 @@ import json
 import cv2
 from flask import Flask, render_template, request, jsonify
 from deepface import DeepFace
-from dotenv import load_dotenv
-load_dotenv()
 
 # 變數定義
 subscription_key = os.getenv("AZURE_KEY")
