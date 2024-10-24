@@ -204,7 +204,7 @@ def get_result_url():
         return jsonify({"result_url": result_url})
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', use_reloader=False)
+    app.run(debug=True, host='0.0.0.0', port='5000', use_reloader=False)
 
 
 
